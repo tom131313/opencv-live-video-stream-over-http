@@ -1,37 +1,48 @@
+package app;
+
+import java.io.*;
+import java.net.Socket;
+import java.net.SocketException;
 
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.logging.Logger;
 
 public class HttpStreamServer implements Runnable {
 
-
-    private BufferedImage img = null;
-    private ServerSocket serverSocket;
     private Socket socket;
-    private final String boundary = "stream";
     private OutputStream outputStream;
-    public Mat imag;
+    private final String boundary = "stream";
+    private Mat image =  new Mat();
 
-    public HttpStreamServer(Mat imagFr) {
-        this.imag = imagFr;
+    public HttpStreamServer(Socket socket) {
+        this.socket = socket;
+        System.out.println("Server constructed using " + this.socket);
     }
 
+    public void run() {
+        try {
+            outputStream = this.socket.getOutputStream();
+            writeHeader(); // header needed at the start of the stream
 
-    public void startStreamingServer() throws IOException {
-        serverSocket = new ServerSocket(8080);
-        socket = serverSocket.accept();
-        writeHeader(socket.getOutputStream(), boundary);
+            // loop forever reading and serving images
+            while (true) {
+                synchronized(OpenCVCameraStream.aLock){OpenCVCameraStream.aLock.wait();}
+                Server.lockImage.readLock().lock();
+                if(OpenCVCameraStream.image != null) OpenCVCameraStream.image.copyTo(image); // get the current image
+                Server.lockImage.readLock().unlock();
+                pushImage(image, 100); // send OpenCV image to the socket as a compressed JPG bytes
+
+                //Thread.sleep(100);
+            }
+        }
+        catch (IOException | InterruptedException e) {return;}
+        finally{System.out.println("thread terminated");}
     }
 
-    private void writeHeader(OutputStream stream, String boundary) throws IOException {
-        stream.write(("HTTP/1.0 200 OK\r\n" +
+    private void writeHeader() throws IOException, SocketException{
+        outputStream.write(("HTTP/1.0 200 OK\r\n" +
                 "Connection: close\r\n" +
                 "Max-Age: 0\r\n" +
                 "Expires: 0\r\n" +
@@ -43,53 +54,36 @@ public class HttpStreamServer implements Runnable {
                 "--" + boundary + "\r\n").getBytes());
     }
 
-    public void pushImage(Mat frame) throws IOException {
-        if (frame == null)
+    public void pushImage(Mat image, int quality) throws IOException {
+        if (image == null || image.empty())
             return;
-        try {
-            outputStream = socket.getOutputStream();
-            BufferedImage img = Mat2bufferedImage(frame);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(img, "jpg", baos);
-            byte[] imageBytes = baos.toByteArray();
-            outputStream.write(("Content-type: image/jpeg\r\n" +
-                    "Content-Length: " + imageBytes.length + "\r\n" +
-                    "\r\n").getBytes());
-            outputStream.write(imageBytes);
-            outputStream.write(("\r\n--" + boundary + "\r\n").getBytes());
-        } catch (Exception ex) {
-            socket = serverSocket.accept();
-            writeHeader(socket.getOutputStream(), boundary);
-        }
+
+        byte[] imageBytes = Mat2byteArray(image, quality);
+
+        outputStream.write(("Content-type: image/jpeg\r\n" +
+                "Content-Length: " + imageBytes.length + "\r\n" +
+                "\r\n").getBytes());
+
+        outputStream.write(imageBytes);
+
+        outputStream.write(("\r\n--" + boundary + "\r\n").getBytes());
     }
 
+   public static byte[] Mat2byteArray(Mat image, int quality) throws IOException {
 
-    public void run() {
-        try {
-            System.out.print("go to  http://localhost:8080 with browser");
-            startStreamingServer();
+        // jpg quality; 0 high compression to 100 low compression
 
-            while (true) {
-                pushImage(imag);
-            }
-        } catch (IOException e) {
-            return;
-        }
+        MatOfByte bytemat = new MatOfByte();
 
-    }
+        MatOfInt parameters = new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, quality); // pair-wise; param1, value1, ...
 
-    public void stopStreamingServer() throws IOException {
-        socket.close();
-        serverSocket.close();
+        Imgcodecs.imencode(".jpg", image, bytemat, parameters);
+
+        return bytemat.toArray();
     }
     
-    public static BufferedImage Mat2bufferedImage(Mat image) throws IOException {
-        MatOfByte bytemat = new MatOfByte();
-        Imgcodecs.imencode(".jpg", image, bytemat);
-        byte[] bytes = bytemat.toArray();
-        InputStream in = new ByteArrayInputStream(bytes);
-        BufferedImage img = null;
-        img = ImageIO.read(in);
-        return img;
-    }
+    public void stopStreamingServer() throws IOException {
+        socket.close();
+     }
+ 
 }
