@@ -1,3 +1,14 @@
+tom131313 changes:
+Added multi-threading server.  Multiple clients are allowed.
+Added JPG quality/compression level option
+Removed duplicate image to JPG encoding.
+Refactored a bit for the multiple client capability.
+Included a demo OpenCV drawing on the camera image before it is served (a filled circle and a rectangle outline).
+Tried to retain the original coding but it looks a lot different when the multi-client is added and the redundancies removed.
+I'm a Java synchronization novice.  Syncing the read and write of the camera image and waiting for a new image to serve might be right but maybe not.
+It seems to work right but that's no proof.
+ToDo could be perform the Mat to JPG bytes encoding once in the capture/draw thread so it doesn't have to be done in each client server thread.
+_______________________________________
 English | [Türkçe](./README.tr-TR.md)
 
 <div align="center">
