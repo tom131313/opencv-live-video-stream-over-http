@@ -16,9 +16,11 @@ public class ImageEdit {
 
 public static Mat edit(Mat src) {
 
-    // returning temp assumes output Mat is different memory than input
-    // this example case that is necessary but do it anyway for example
-
+    // Returning temp assumes output Mat is different memory address than input
+    // since Java doesn't pass by reference.  Whether or not that is needed depends
+    // on what are the changes to the data.  This is the general case that supports
+    // whatever might happen.
+ 
     tempImage = src.clone();
 
     //Mat.zeros(frame.rows(), frame.cols(), frame.type()).copyTo(frame); // wipe out camera image with black (zeros)
@@ -31,39 +33,44 @@ public static Mat edit(Mat src) {
 
     Imgproc.circle( tempImage, center, radius, color, thickness );
 
-    // - Add a rectangle
-    MatOfPoint rectangle = new MatOfPoint(
+    // - Add a rectangle and some other polygon
+    List<MatOfPoint> polygon = new ArrayList<MatOfPoint>(2);
+    polygon.add( new MatOfPoint (
         new Point(130., 30.),
         new Point(180., 30.),
         new Point(180., 180.),
-        new Point(130., 180.)
-        );
+        new Point(130., 180.) ) );
 
-    drawShape( rectangle, tempImage );
+    polygon.add( new MatOfPoint (
+        new Point(140., 40.),
+        new Point(190., 40.),
+        new Point(200., 200.),
+        new Point(60., 180.) ) );
+
+    drawShape( polygon, tempImage );
 
     Imgproc.resize(tempImage, tempImage, new Size(120., 100.));
     
     return tempImage;
 }
 
-static void drawShape(MatOfPoint shape, Mat dst) {
-    //System.out.println(shape.dump() + " " + dst.rows()); 
+static void drawShape(List<MatOfPoint> shape, Mat dst) {
 
-    List<MatOfPoint> temp = new ArrayList<MatOfPoint>();
-    temp.add(shape);
+    // draw an auto-closed polygon - first and last point don't have to match
     Imgproc.polylines(
         dst, // Matrix obj of the image
-        temp, // java.util.List<MatOfPoint> pts
+        shape, // java.util.List<MatOfPoint> pts
         true, // isClosed
         new Scalar(0, 255, 0), // Scalar object for color
         1, // Thickness of the line
         Imgproc.LINE_4 // line type
         );
 
-    // for (int idxR =0; idxR < shape.rows(); idxR++) {
-    //     int c =  (int)shape.get( idxR,0) [0];
-    //     int r =  (int)shape.get( idxR,0) [1];
-    //     Imgproc.drawMarker(dst, new Point(c, r), new Scalar(255, 0, 255), Imgproc.MARKER_STAR, 8);// magenta
-    // }
+    // draw markers on the first curve .get(0)
+    for (int idxR =0; idxR < shape.get(0).rows(); idxR++) {
+        int c =  (int)shape.get(0).get(idxR,0) [0];
+        int r =  (int)shape.get(0).get(idxR,0) [1];
+        Imgproc.drawMarker(dst, new Point(c, r), new Scalar(255, 0, 255), Imgproc.MARKER_STAR, 8);
+        }
     }
 }
