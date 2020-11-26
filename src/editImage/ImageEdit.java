@@ -42,6 +42,7 @@ public static Mat edit(Mat src) {
     drawShape( rectangle, tempImage );
 
     Imgproc.resize(tempImage, tempImage, new Size(120., 100.));
+    
     return tempImage;
 }
 
