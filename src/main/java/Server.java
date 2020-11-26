@@ -12,13 +12,14 @@ public class Server {
 
     static {System.loadLibrary(Core.NATIVE_LIBRARY_NAME);} // Load opencv native library
 
-    public static Mat frame = null;
+    protected static int quality = 100;
+    protected static Mat frame = null;
     protected static HttpStreamServer httpStreamService;
-    public static ReadWriteLock lockImage = new ReentrantReadWriteLock(true);
+    protected static ReadWriteLock lockImage = new ReentrantReadWriteLock(true);
 
     public static void main(String[] args) {
         try {
-        int port = 0;
+        int port = 8080; // for example, http://localhost:8080
 
         // start the camera capture/draw an image thread
         OpenCVCameraStream ci = new OpenCVCameraStream();
@@ -28,10 +29,14 @@ public class Server {
         // get the port number
         try {
         if(args.length > 0) port = Integer.parseInt(args[0]);
-        else port = 8080; // for example, http://localhost:8080
+        if(args.length > 1) quality = Integer.parseInt(args[1]);
+        if(quality < 0) quality = 0;
+        else if(quality > 100) quality = 100;
         }
         catch(NumberFormatException ex) {
-            System.out.println("Usage:java -jar OpenCVServer.jar <port number>");
+            System.out.println("Usage:java -jar OpenCVServer.jar <port number> <JPG stream quality 0-100>");
+            System.out.println("Default 8080 100");
+            System.out.flush();
             System.exit(1);}
 
         // establish the server socket to the desired port

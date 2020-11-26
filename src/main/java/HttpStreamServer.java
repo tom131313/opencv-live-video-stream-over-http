@@ -32,9 +32,7 @@ public class HttpStreamServer implements Runnable {
                 Server.lockImage.readLock().lock();
                 if(OpenCVCameraStream.image != null) OpenCVCameraStream.image.copyTo(image); // get the current image
                 Server.lockImage.readLock().unlock();
-                pushImage(image, 100); // send OpenCV image to the socket as a compressed JPG bytes
-
-                //Thread.sleep(100);
+                pushImage(image, Server.quality); // send OpenCV image to the socket as a compressed JPG bytes
             }
         }
         catch (IOException | InterruptedException e) {return;}
