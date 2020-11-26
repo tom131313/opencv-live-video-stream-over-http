@@ -3,6 +3,8 @@ package app;
 import org.opencv.core.Mat;
 import org.opencv.videoio.VideoCapture;
 
+import editImage.ImageEdit;
+
 public class OpenCVCameraStream extends Thread {
 
     private static VideoCapture videoCapture;
