@@ -35,7 +35,7 @@ public class OpenCVCameraStream extends Thread {
             generateTestImage(); // mess with the frame before serving it
             // > END Code to generate test images
 
-            //procesed frame comlete; copy to synced image for others to view
+            //processed frame comlete; copy to synced image for others to view
             Server.lockImage.writeLock().lock();
             image = frame;
             frameCount++;

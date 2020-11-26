@@ -18,18 +18,28 @@ public class Server {
 
     public static void main(String[] args) {
         try {
+        int port = 0;
+
         // start the camera capture/draw an image thread
         OpenCVCameraStream ci = new OpenCVCameraStream();
         Thread imageThread = new Thread(ci);
         imageThread.start();
 
+        // get the port number
+        try {
+        if(args.length > 0) port = Integer.parseInt(args[0]);
+        else port = 8080; // for example, http://localhost:8080
+        }
+        catch(NumberFormatException ex) {
+            System.out.println("Usage:java -jar OpenCVServer.jar <port number>");
+            System.exit(1);}
+
         // establish the server socket to the desired port
-        int port = 8080; // for example, http://localhost:8080
         ServerSocket serverSocket = new ServerSocket(port);
 
         // loop forever waiting for clients and then serving each client request
         while (true) {
-            System.out.println("Waiting for client request on http://localhost:8080");
+            System.out.println("Waiting for client request on http://localhost:" + port);
             Socket socket = serverSocket.accept(); // accept connection with the assigned socket
             System.out.println("New client asked for a connection " + socket.getPort());
             httpStreamService = new HttpStreamServer(socket); // define the server to the socket
