@@ -79,9 +79,4 @@ public class HttpStreamServer implements Runnable {
 
         return bytemat.toArray();
     }
-    
-    public void stopStreamingServer() throws IOException {
-        socket.close();
-     }
- 
 }
