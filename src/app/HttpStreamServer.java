@@ -15,8 +15,7 @@ public class HttpStreamServer implements Runnable {
 
         @Override
         public void uncaughtException(Thread t, Throwable e) {
-            // do something here - log to file and upload to    server/close resources/delete files...
-            Server.mainThread.interrupt();
+            Server.mainThread.interrupt(); // bad to be here so tell the main to give it up
             System.out.println("last chance in thread " + t);
             e.printStackTrace();
             
@@ -51,7 +50,12 @@ public class HttpStreamServer implements Runnable {
                 Server.lockImage.readLock().unlock();
                 pushImage(image, Server.quality); // send OpenCV image to the socket as a compressed JPG bytes
             }
+
+            // interrupted so quit
+            System.exit(1);
         }
+        // catch the normal thread termination if a client leaves
+        // don't fail; another client may want to connect
         catch (IOException | InterruptedException e) {return;}
         finally{System.out.println("thread terminated");}
     }
@@ -86,7 +90,8 @@ public class HttpStreamServer implements Runnable {
 
    public static byte[] Mat2byteArray(Mat image, int quality) throws IOException {
 
-        // jpg quality; 0 high compression to 100 low compression
+        // convert to bytes and encode the image to JPG
+        // jpg quality; 0 high compression-low quality to 100 low compression-high quality
 
         MatOfByte bytemat = new MatOfByte();
 

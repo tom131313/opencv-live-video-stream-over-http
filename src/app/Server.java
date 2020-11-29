@@ -24,7 +24,9 @@ public class Server {
     protected static ReadWriteLock lockImage = new ReentrantReadWriteLock(true);
 
     public static void main(String[] args) {
+
         mainThread.setName("ServerMain");
+
         // get the camera number, port number and JPG quality options
         try {
            if(args.length > 0) {
@@ -69,18 +71,19 @@ public class Server {
             ServerSocket serverSocket = new ServerSocket(port);
             ) {
  
-        serverSocket.setSoTimeout(5000);
+        serverSocket.setSoTimeout(5000); // short timeout delay for checking if a thread interrupted main
         Socket socket;
         Thread httpThread = null;
 
         clientLoop:
         while (!mainThread.isInterrupted()) {
-            System.out.println("Waiting for client request on http://localhost:" + port);
+            System.out.println("Waiting for another client request on http://localhost:" + port);
             
             while(true) { // make the accept interruptable to get messages form others
                 try {
-                socket = serverSocket.accept(); // accept connection with the assigned socket
-                break;
+                socket = serverSocket.accept(); // wait and accept connection with the assigned socket
+                break; // made the connection so stop waiting and continue on to start the thread
+                // check for request to interrupt in the last timeout period and if so bailout
                 } catch(SocketTimeoutException e) {if(mainThread.isInterrupted()) break clientLoop;}
             }
 
@@ -91,7 +94,8 @@ public class Server {
             System.out.println("starting thread " + httpThread);
             httpThread.start(); // start the thread
         }
-        System.out.println("Server main done");
+
+        System.out.println("Server main done; trying to cleanup");
         // suggest killing the others
         if(cameraThread != null) cameraThread.interrupt();
         if(httpThread != null) httpThread.interrupt();
@@ -99,6 +103,5 @@ public class Server {
         catch (IOException e) {
             e.printStackTrace();
         }
-        
     }
 }
