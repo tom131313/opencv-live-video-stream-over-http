@@ -5,6 +5,7 @@ import org.opencv.core.Mat;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -12,6 +13,8 @@ public class Server {
 
     static {System.loadLibrary(Core.NATIVE_LIBRARY_NAME);} // Load opencv native library
 
+    protected static Thread mainThread = Thread.currentThread();
+    
     protected static int camera = 0; // default camera
     protected static int port = 8080; // default port for example, http://localhost:8080
     protected static int quality = 100; // default quality, best quality-lowest compression
@@ -21,7 +24,7 @@ public class Server {
     protected static ReadWriteLock lockImage = new ReentrantReadWriteLock(true);
 
     public static void main(String[] args) {
-
+        mainThread.setName("ServerMain");
         // get the camera number, port number and JPG quality options
         try {
            if(args.length > 0) {
@@ -52,28 +55,50 @@ public class Server {
         
         System.out.println(camera + " " + port + " " + quality);
 
-       // start the camera capture/draw an image thread
+        // start the camera capture/draw an image thread
         OpenCVCameraStream ci = new OpenCVCameraStream();
-        Thread imageThread = new Thread(ci);
-        imageThread.start();
+        Thread cameraThread = new Thread(ci);
+        cameraThread.setName("Camera");
+        System.out.println("starting thread " + cameraThread);
+        cameraThread.start();
 
         // establish server socket to desired port
         // loop forever waiting for clients and then serving each client request
+        // check every Socket Timeout period to see if main was interrupted by others and should quit
         try (
             ServerSocket serverSocket = new ServerSocket(port);
             ) {
  
-        while (true) {
+        serverSocket.setSoTimeout(5000);
+        Socket socket;
+        Thread httpThread = null;
+
+        clientLoop:
+        while (!mainThread.isInterrupted()) {
             System.out.println("Waiting for client request on http://localhost:" + port);
-            Socket socket = serverSocket.accept(); // accept connection with the assigned socket
+            
+            while(true) { // make the accept interruptable to get messages form others
+                try {
+                socket = serverSocket.accept(); // accept connection with the assigned socket
+                break;
+                } catch(SocketTimeoutException e) {if(mainThread.isInterrupted()) break clientLoop;}
+            }
+
             System.out.println("New client asked for a connection " + socket.getPort());
             httpStreamService = new HttpStreamServer(socket); // define the server to the socket
-            Thread t = new Thread(httpStreamService); // define the thread
-            t.start(); // start the thread
-         }
+            httpThread = new Thread(httpStreamService); // define the thread
+            httpThread.setName("ServerHTTP");
+            System.out.println("starting thread " + httpThread);
+            httpThread.start(); // start the thread
+        }
+        System.out.println("Server main done");
+        // suggest killing the others
+        if(cameraThread != null) cameraThread.interrupt();
+        if(httpThread != null) httpThread.interrupt();
         }
         catch (IOException e) {
             e.printStackTrace();
         }
+        
     }
 }

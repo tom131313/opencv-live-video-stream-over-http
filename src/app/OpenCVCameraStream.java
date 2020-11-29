@@ -6,7 +6,21 @@ import org.opencv.videoio.VideoCapture;
 import editImage.ImageEdit;
 
 public class OpenCVCameraStream extends Thread {
+ 
+    public class LastChanceHandler implements Thread.UncaughtExceptionHandler {
 
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            // do something here - log to file and upload to    server/close resources/delete files...
+            Server.mainThread.interrupt();
+            System.out.println("last chance in thread " + t);
+            e.printStackTrace();
+            
+        }
+    }
+
+    protected static Thread cameraThread = Thread.currentThread();
+  
     private static VideoCapture videoCapture;
     protected static Mat image = new Mat(); // shared; lock ReadWrite
     private static Mat frame = new Mat(); // internal; sync copy to image when completed
@@ -16,12 +30,15 @@ public class OpenCVCameraStream extends Thread {
 
     public void run() {
 
+        Thread.setDefaultUncaughtExceptionHandler(new LastChanceHandler());
+
         videoCapture = new VideoCapture();
+        System.out.println("Opening camera " + Server.camera);
         videoCapture.open(Server.camera); // camera number
         if (!videoCapture.isOpened()) {
             System.exit(1);
         }
-        while(true) {
+        while(!Thread.currentThread().isInterrupted()) {
 
             if (!videoCapture.read(frame)) {
                 break;
@@ -31,7 +48,7 @@ public class OpenCVCameraStream extends Thread {
 
             tempImage = ImageEdit.edit(frame); // mess with the frame before serving it
             
-            } catch(Exception ex){ex.printStackTrace(); System.exit(1);}
+            } catch(Exception ex){ex.printStackTrace(); Server.mainThread.interrupt();System.exit(1);}
 
             //processed frame comlete; copy to synced image for others to view
             Server.lockImage.writeLock().lock();

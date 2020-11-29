@@ -11,6 +11,20 @@ import org.opencv.imgcodecs.Imgcodecs;
 
 public class HttpStreamServer implements Runnable {
 
+    public class LastChanceHandler implements Thread.UncaughtExceptionHandler {
+
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            // do something here - log to file and upload to    server/close resources/delete files...
+            Server.mainThread.interrupt();
+            System.out.println("last chance in thread " + t);
+            e.printStackTrace();
+            
+        }
+    }
+
+    protected static Thread httpThread = Thread.currentThread();
+  
     private Socket socket;
     private OutputStream outputStream;
     private final String boundary = "stream";
@@ -22,12 +36,15 @@ public class HttpStreamServer implements Runnable {
     }
 
     public void run() {
+
+        Thread.setDefaultUncaughtExceptionHandler(new LastChanceHandler());
+
         try {
             outputStream = this.socket.getOutputStream();
             writeHeader(); // header needed at the start of the stream
 
             // loop forever reading and serving images
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 synchronized(OpenCVCameraStream.aLock){OpenCVCameraStream.aLock.wait();}
                 Server.lockImage.readLock().lock();
                 if(OpenCVCameraStream.image != null) image = OpenCVCameraStream.image.clone(); // get the current image
