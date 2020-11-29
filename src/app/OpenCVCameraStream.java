@@ -17,9 +17,9 @@ public class OpenCVCameraStream extends Thread {
     public void run() {
 
         videoCapture = new VideoCapture();
-        videoCapture.open(0); // camera number
+        videoCapture.open(Server.camera); // camera number
         if (!videoCapture.isOpened()) {
-            return;
+            System.exit(1);
         }
         while(true) {
 
@@ -27,9 +27,11 @@ public class OpenCVCameraStream extends Thread {
                 break;
                 }
 
+            try {
 
             tempImage = ImageEdit.edit(frame); // mess with the frame before serving it
-
+            
+            } catch(Exception ex){ex.printStackTrace(); System.exit(1);}
 
             //processed frame comlete; copy to synced image for others to view
             Server.lockImage.writeLock().lock();
@@ -38,5 +40,6 @@ public class OpenCVCameraStream extends Thread {
             Server.lockImage.writeLock().unlock();
             synchronized(aLock){aLock.notifyAll();}
         }
+        System.exit(1);
     }
 }
