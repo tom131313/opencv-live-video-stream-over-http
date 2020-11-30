@@ -11,10 +11,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Server {
 
-    static {System.loadLibrary(Core.NATIVE_LIBRARY_NAME);} // Load opencv native library
+    static {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    } // Load opencv native library
 
     protected static Thread mainThread = Thread.currentThread();
-    
+
     protected static int camera = 0; // default camera
     protected static int port = 8080; // default port for example, http://localhost:8080
     protected static int quality = 100; // default quality, best quality-lowest compression
@@ -29,31 +31,31 @@ public class Server {
 
         // get the camera number, port number and JPG quality options
         try {
-           if(args.length > 0) {
+            if (args.length > 0) {
                 camera = Integer.parseInt(args[0]);
-                if(camera < 0) {
+                if (camera < 0) {
                     throw new NumberFormatException();
-                    }
                 }
-            if(args.length > 1) {
+            }
+            if (args.length > 1) {
                 port = Integer.parseInt(args[1]);
-                if(port < 0 ) {
+                if (port < 0) {
                     throw new NumberFormatException();
-                    }
                 }
-            if(args.length > 2) {
+            }
+            if (args.length > 2) {
                 quality = Integer.parseInt(args[2]);
-                if(quality < 0 || quality > 100) {
+                if (quality < 0 || quality > 100) {
                     throw new NumberFormatException();
-                    }
                 }
-             }
-        catch(NumberFormatException ex) {
-            System.out.println("Usage:java -jar OpenCVServer.jar <camera number> <port number> <JPG stream quality 0-100>");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println(
+                "Usage:java -jar OpenCVServer.jar <camera number> <port number> <JPG stream quality 0-100>");
             System.out.println("Default options: 0 8080 100");
             System.exit(1);
-            }
-        
+        }
+
         System.out.println("Camera " + camera + ", Port " + port + ", JPG quality " + quality);
 
         // start the camera capture/draw an image thread
@@ -83,7 +85,7 @@ public class Server {
                 socket = serverSocket.accept(); // wait and accept connection with the assigned socket
                 break; // made the connection so stop waiting and continue on to start the thread
                 // check for request to interrupt in the last timeout period and if so bailout
-                } catch(SocketTimeoutException ex) {if(mainThread.isInterrupted()) break clientLoop;}
+                } catch(SocketTimeoutException e) {if(mainThread.isInterrupted()) break clientLoop;}
             }
 
             System.out.println("New client asked for a connection " + socket.getPort());
@@ -99,8 +101,8 @@ public class Server {
         if(cameraThread != null) cameraThread.interrupt();
         if(httpThread != null) httpThread.interrupt();
         }
-        catch (IOException ex) {
-            ex.printStackTrace();
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

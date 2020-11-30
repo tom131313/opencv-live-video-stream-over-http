@@ -15,7 +15,7 @@ public class HttpStreamServer implements Runnable {
 
         @Override
         public void uncaughtException(Thread t, Throwable e) {
-            Server.mainThread.interrupt(); // bad to be here so tell the main to give it up
+            Server.mainThread.interrupt(); // bad to be here so tell the main it should quit
             System.out.println("Last chance in thread " + t);
             e.printStackTrace();
         }
@@ -41,20 +41,22 @@ public class HttpStreamServer implements Runnable {
 
             // loop fetching and serving images until requested to stop
             while (!Thread.currentThread().isInterrupted()) {
-                synchronized(OpenCVCameraStream.aLock){OpenCVCameraStream.aLock.wait();}
+                synchronized(OpenCVCameraStream.aLock) {
+                    OpenCVCameraStream.aLock.wait(); // wait for a new image
+                }
                 Server.lockImage.readLock().lock();
                 if(OpenCVCameraStream.image != null) image = OpenCVCameraStream.image.clone(); // get the current image
                 Server.lockImage.readLock().unlock();
                 pushImage(image, Server.quality); // send OpenCV image to the socket as a compressed JPG bytes
             }
 
-            // interrupt requested by main so quit
-            System.exit(1);
+            System.exit(1); // interrupt requested by main so quit
         }
-        // catch the normal thread termination if a client leaves
-        // don't fail; another client may want to connect
-        catch (IOException | InterruptedException ex) {
-            return;
+        catch (IOException e) { // catch the normal thread termination if a client leaves
+            return; // don't fail; clients may want to connect
+            }
+        catch (InterruptedException e) { // interrupt requested by main
+            System.exit(1); // so quit
             }
         finally {
             System.out.println("Client thread terminated");
