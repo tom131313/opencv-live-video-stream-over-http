@@ -12,7 +12,7 @@ public class OpenCVCameraStream extends Thread {
         @Override
         public void uncaughtException(Thread t, Throwable e) {
             Server.mainThread.interrupt(); // bad to be here so tell the main to give it up
-            System.out.println("last chance in thread " + t);
+            System.out.println("Last chance in thread " + t);
             e.printStackTrace();
         }
     }
@@ -28,37 +28,40 @@ public class OpenCVCameraStream extends Thread {
 
         Thread.setDefaultUncaughtExceptionHandler(new LastChanceHandler());
 
-        // open requested camera
         videoCapture = new VideoCapture();
-        System.out.println("Opening camera " + Server.camera);
-        videoCapture.open(Server.camera); // camera number
-        if (!videoCapture.isOpened()) {
-            System.exit(1);
-        }
+        
+        if (videoCapture.open(Server.camera)) { // open requested camera
+            // loop grabing camera frames until requested to stop
+            while(!Thread.currentThread().isInterrupted()) {
 
-        // loop grabing camera frames until requested to stop
-        while(!Thread.currentThread().isInterrupted()) {
+                if (!videoCapture.read(frame)) {
+                    break;
+                    }
 
-            if (!videoCapture.read(frame)) {
-                break;
+                try {
+
+                // call any frame editing that someone may have put into the classpath
+                tempImage = ImageEdit.edit(frame); // mess with the frame before serving it
+                
+                } catch(Exception ex) { // catch whatever bad may be returned
+                    ex.printStackTrace();
+                    break;
                 }
 
-            try {
-
-            // call any frame editing that someone may have put into the classpath
-            tempImage = ImageEdit.edit(frame); // mess with the frame before serving it
-            
-            } catch(Exception ex){ex.printStackTrace(); Server.mainThread.interrupt();System.exit(1);}
-
-            //processed frame complete; copy to synced image for others to view
-            Server.lockImage.writeLock().lock();
-            image = tempImage.clone();
-            frameCount++;
-            Server.lockImage.writeLock().unlock();
-            synchronized(aLock){aLock.notifyAll();}
+                //processed frame complete; copy to synced image for others to view
+                Server.lockImage.writeLock().lock();
+                image = tempImage.clone();
+                frameCount++;
+                Server.lockImage.writeLock().unlock();
+                synchronized(aLock){aLock.notifyAll();}
+            }
         }
+        else {
+            System.out.println("Unable to open camera " + Server.camera);
+            }
 
-        // interrupted so quit
+        // should have run forever but failed or interrupted so quit
+        Server.mainThread.interrupt();
         System.exit(1);
     }
 }

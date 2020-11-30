@@ -16,7 +16,7 @@ public class HttpStreamServer implements Runnable {
         @Override
         public void uncaughtException(Thread t, Throwable e) {
             Server.mainThread.interrupt(); // bad to be here so tell the main to give it up
-            System.out.println("last chance in thread " + t);
+            System.out.println("Last chance in thread " + t);
             e.printStackTrace();
         }
     }
@@ -48,13 +48,17 @@ public class HttpStreamServer implements Runnable {
                 pushImage(image, Server.quality); // send OpenCV image to the socket as a compressed JPG bytes
             }
 
-            // interrupted so quit
+            // interrupt requested by main so quit
             System.exit(1);
         }
         // catch the normal thread termination if a client leaves
         // don't fail; another client may want to connect
-        catch (IOException | InterruptedException ex) {return;}
-        finally{System.out.println("client thread terminated");}
+        catch (IOException | InterruptedException ex) {
+            return;
+            }
+        finally {
+            System.out.println("Client thread terminated");
+            }
     }
 
     private void writeHeader() throws IOException, SocketException{

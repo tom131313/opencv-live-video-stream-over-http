@@ -54,7 +54,7 @@ public class Server {
             System.exit(1);
             }
         
-        System.out.println(camera + " " + port + " " + quality);
+        System.out.println("Camera " + camera + ", Port " + port + ", JPG quality " + quality);
 
         // start the camera capture/draw an image thread
         OpenCVCameraStream ci = new OpenCVCameraStream();
