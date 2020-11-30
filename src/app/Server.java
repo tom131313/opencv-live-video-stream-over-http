@@ -50,8 +50,7 @@ public class Server {
              }
         catch(NumberFormatException ex) {
             System.out.println("Usage:java -jar OpenCVServer.jar <camera number> <port number> <JPG stream quality 0-100>");
-            System.out.println("Default 0 8080 100");
-            System.out.flush();
+            System.out.println("Default options: 0 8080 100");
             System.exit(1);
             }
         
@@ -61,7 +60,7 @@ public class Server {
         OpenCVCameraStream ci = new OpenCVCameraStream();
         Thread cameraThread = new Thread(ci);
         cameraThread.setName("Camera");
-        System.out.println("starting thread " + cameraThread);
+        System.out.println("Starting " + cameraThread);
         cameraThread.start();
 
         // establish server socket to desired port
@@ -79,19 +78,19 @@ public class Server {
         while (!mainThread.isInterrupted()) {
             System.out.println("Waiting for another client request on http://localhost:" + port);
             
-            while(true) { // make the accept interruptable to get messages form others
+            while(true) { // make the accept interruptable to get messages from others
                 try {
                 socket = serverSocket.accept(); // wait and accept connection with the assigned socket
                 break; // made the connection so stop waiting and continue on to start the thread
                 // check for request to interrupt in the last timeout period and if so bailout
-                } catch(SocketTimeoutException e) {if(mainThread.isInterrupted()) break clientLoop;}
+                } catch(SocketTimeoutException ex) {if(mainThread.isInterrupted()) break clientLoop;}
             }
 
             System.out.println("New client asked for a connection " + socket.getPort());
             httpStreamService = new HttpStreamServer(socket); // define the server to the socket
             httpThread = new Thread(httpStreamService); // define the thread
             httpThread.setName("ServerHTTP");
-            System.out.println("starting thread " + httpThread);
+            System.out.println("Starting " + httpThread);
             httpThread.start(); // start the thread
         }
 
@@ -100,8 +99,8 @@ public class Server {
         if(cameraThread != null) cameraThread.interrupt();
         if(httpThread != null) httpThread.interrupt();
         }
-        catch (IOException e) {
-            e.printStackTrace();
+        catch (IOException ex) {
+            ex.printStackTrace();
         }
     }
 }

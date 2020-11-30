@@ -18,12 +18,9 @@ public class HttpStreamServer implements Runnable {
             Server.mainThread.interrupt(); // bad to be here so tell the main to give it up
             System.out.println("last chance in thread " + t);
             e.printStackTrace();
-            
         }
     }
 
-    protected static Thread httpThread = Thread.currentThread();
-  
     private Socket socket;
     private OutputStream outputStream;
     private final String boundary = "stream";
@@ -42,7 +39,7 @@ public class HttpStreamServer implements Runnable {
             outputStream = this.socket.getOutputStream();
             writeHeader(); // header needed at the start of the stream
 
-            // loop forever reading and serving images
+            // loop fetching and serving images until requested to stop
             while (!Thread.currentThread().isInterrupted()) {
                 synchronized(OpenCVCameraStream.aLock){OpenCVCameraStream.aLock.wait();}
                 Server.lockImage.readLock().lock();
@@ -56,8 +53,8 @@ public class HttpStreamServer implements Runnable {
         }
         // catch the normal thread termination if a client leaves
         // don't fail; another client may want to connect
-        catch (IOException | InterruptedException e) {return;}
-        finally{System.out.println("thread terminated");}
+        catch (IOException | InterruptedException ex) {return;}
+        finally{System.out.println("client thread terminated");}
     }
 
     private void writeHeader() throws IOException, SocketException{

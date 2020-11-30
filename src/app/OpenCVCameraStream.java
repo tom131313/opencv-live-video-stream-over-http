@@ -14,12 +14,9 @@ public class OpenCVCameraStream extends Thread {
             Server.mainThread.interrupt(); // bad to be here so tell the main to give it up
             System.out.println("last chance in thread " + t);
             e.printStackTrace();
-            
         }
     }
 
-    protected static Thread cameraThread = Thread.currentThread();
-  
     private static VideoCapture videoCapture;
     protected static Mat image = new Mat(); // shared; lock ReadWrite
     private static Mat frame = new Mat(); // internal; sync copy to image when completed
@@ -39,7 +36,7 @@ public class OpenCVCameraStream extends Thread {
             System.exit(1);
         }
 
-        // grab camera frames until requested to stop
+        // loop grabing camera frames until requested to stop
         while(!Thread.currentThread().isInterrupted()) {
 
             if (!videoCapture.read(frame)) {
